@@ -28,16 +28,38 @@ function setHeaderState() {
   header.classList.toggle("is-scrolled", window.scrollY > 18);
 }
 
-function closeNav() {
+let scrollPosition = 0;
+
+function lockScroll() {
+  scrollPosition = window.scrollY;
+  document.body.classList.add("nav-open");
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${scrollPosition}px`;
+  document.body.style.width = "100%";
+}
+
+function unlockScroll() {
   document.body.classList.remove("nav-open");
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.width = "";
+  window.scrollTo(0, scrollPosition);
+}
+
+function closeNav() {
   header.classList.remove("menu-open");
   navToggle.setAttribute("aria-expanded", "false");
+  unlockScroll();
 }
 
 navToggle.addEventListener("click", () => {
   const isOpen = header.classList.toggle("menu-open");
-  document.body.classList.toggle("nav-open", isOpen);
   navToggle.setAttribute("aria-expanded", String(isOpen));
+  if (isOpen) {
+    lockScroll();
+  } else {
+    unlockScroll();
+  }
 });
 
 nav.addEventListener("click", (event) => {
@@ -147,6 +169,20 @@ form.addEventListener("submit", (event) => {
   const formData = new FormData(form);
   const name = formData.get("nome") || "Obrigado";
 
-  formNote.textContent = `${name}, sua mensagem foi registrada para demonstração local.`;
-  form.reset();
+  fetch("https://formspree.io/f/meewyrro", {
+    method: "POST",
+    body: formData,
+    headers: { Accept: "application/json" }
+  })
+    .then((response) => {
+      if (response.ok) {
+        formNote.textContent = `${name}, sua mensagem foi enviada com sucesso! Entraremos em contato em breve.`;
+        form.reset();
+      } else {
+        formNote.textContent = "Ops! Algo deu errado ao enviar. Tente novamente.";
+      }
+    })
+    .catch(() => {
+      formNote.textContent = "Erro de conexão. Verifique sua internet e tente de novo.";
+    });
 });
